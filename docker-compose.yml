@@ -1,0 +1,47 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: doccopilot-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # override de seguridad: si falta en .env, poner fallback
+      - VSTORE_BACKEND=${VSTORE_BACKEND:-chroma}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - FORCE_CITATIONS=${FORCE_CITATIONS:-1}
+      - ALLOW_WEAK_FALLBACK=${ALLOW_WEAK_FALLBACK:-1}
+      - APP_VERSION=${APP_VERSION:-0.1.0}
+    volumes:
+      - doc_data:/app/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'python -c "import urllib.request,sys; resp=urllib.request.urlopen(''http://localhost:8000/healthz''); sys.exit(0 if resp.getcode()==200 else 1)"',
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+      start_period: 10s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: doccopilot-frontend
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      - BACKEND_URL=${BACKEND_URL:-http://backend:8000}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  doc_data:
