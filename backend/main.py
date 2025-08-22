@@ -14,7 +14,7 @@ from backend.core.pdf import chunk_text
 from backend.core.llm import embed, chat as llm_chat
 from backend.core.vectorstore import upsert_chunks, load_collection, clear_collection
 from backend.core.rag import retrieve, augment, answer
-from backend.core.orchestrator import run_chat
+import backend.core.orchestrator as orch
 
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
@@ -279,11 +279,11 @@ async def chat_rag(payload: dict = Body(...)):
                 ]
             )
 
-        out = run_chat(q, collection, _retrieve, _complete)
+        out = orch.run_chat(q, collection, _retrieve, _complete)
 
         # Tu heurística de reintento si no cita nada (opcional, ya lo hace el orquestador):
         if "(Doc:" not in out["answer"]:
-            out = run_chat(q, collection, _retrieve, _complete)
+            out = orch.run_chat(q, collection, _retrieve, _complete)
 
         return out
 
